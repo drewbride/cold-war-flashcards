@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cold War - Learning Agent</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0a0e1a;color:#e0e0e0;min-height:100vh;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 50%,rgba(180,30,30,.1) 0%,transparent 50%),radial-gradient(ellipse at 80% 50%,rgba(30,60,180,.1) 0%,transparent 50%);z-index:0;pointer-events:none}
+
+    /* ── HERO ── */
+    .hero{position:relative;z-index:1;text-align:center;padding:24px 16px 8px}
+    .hero h1{font-size:clamp(1.6rem,4vw,2.4rem);font-weight:800;background:linear-gradient(135deg,#e74c3c,#ecf0f1,#3498db);background-size:200% 200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:grad 4s ease-in-out infinite alternate}
+    @keyframes grad{0%{background-position:0% 50%}100%{background-position:100% 50%}}
+    .sub{font-size:.8rem;color:#555;margin-top:2px}
+
+    /* ── MODE TABS ── */
+    .tabs{position:relative;z-index:1;display:flex;justify-content:center;gap:4px;padding:12px 16px 10px}
+    .tab{padding:6px 16px;border-radius:6px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);color:#666;font-size:.75rem;font-weight:600;font-family:inherit;cursor:pointer;transition:.2s;position:relative}
+    .tab:hover{background:rgba(255,255,255,.07);color:#aaa}
+    .tab.on{background:linear-gradient(135deg,rgba(231,76,60,.15),rgba(52,152,219,.15));border-color:rgba(255,255,255,.12);color:#eee}
+    .tab .badge{position:absolute;top:-5px;right:-5px;background:#e74c3c;color:#fff;font-size:.6rem;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 3px}
+
+    /* ── MASTERY BAR ── */
+    .mbar{position:relative;z-index:1;max-width:560px;margin:0 auto 6px;padding:0 16px}
+    .mbar-head{display:flex;justify-content:space-between;font-size:.7rem;color:#555;margin-bottom:4px}
+    .mbar-track{display:flex;height:5px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,.04)}
+    .mbar-track .s{transition:width .4s ease;min-width:0}
+    .s-m{background:#2ecc71}.s-rv{background:#3498db}.s-l{background:#f39c12}.s-n{background:rgba(255,255,255,.1)}
+    .mleg{display:flex;justify-content:center;gap:10px;margin-top:4px;font-size:.6rem;color:#555}
+    .mleg span{display:flex;align-items:center;gap:3px}
+    .mleg i{width:6px;height:6px;border-radius:50%;display:inline-block}
+
+    /* ── STREAK ── */
+    .streak{position:relative;z-index:1;text-align:center;padding:2px 16px 4px;font-size:.8rem;color:#f39c12;font-weight:700;height:24px;overflow:hidden}
+    .streak span{display:inline-block;opacity:0;transform:scale(.5);transition:.3s}
+    .streak.on span{opacity:1;transform:scale(1)}
+
+    /* ── CARD HEADER ── */
+    .card-head{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:0 16px 4px;display:flex;justify-content:space-between;align-items:center;font-size:.75rem;color:#555}
+
+    /* ── CONTROLS ── */
+    .ctrls{position:relative;z-index:1;display:flex;justify-content:center;align-items:center;gap:8px;padding:0 16px 10px}
+    .btn{display:flex;align-items:center;justify-content:center;border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;transition:.2s}
+    .bn{width:38px;height:38px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#999;font-size:1.1rem}
+    .bn:hover{background:rgba(255,255,255,.1);transform:scale(1.05)}
+    .bn:disabled{opacity:.2;cursor:default;transform:none}
+    .bf{padding:8px 20px;background:linear-gradient(135deg,rgba(231,76,60,.18),rgba(52,152,219,.18));border:1px solid rgba(255,255,255,.1);color:#ddd;font-size:.8rem;gap:6px}
+    .bf:hover{background:linear-gradient(135deg,rgba(231,76,60,.3),rgba(52,152,219,.3))}
+    .bh{padding:8px 14px;background:rgba(155,89,182,.1);border:1px solid rgba(155,89,182,.2);color:#9b59b6;font-size:.75rem;gap:4px}
+    .bh:hover{background:rgba(155,89,182,.2)}
+    .bh:disabled{opacity:.25;cursor:default}
+    kbd{display:inline-block;padding:1px 4px;font-size:.6rem;font-family:inherit;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:3px;color:#666}
+
+    /* ── FLASHCARD ── */
+    .card-wrap{position:relative;z-index:1;display:flex;justify-content:center;padding:0 16px 8px;perspective:1000px}
+    .card{width:100%;max-width:560px;height:260px;cursor:pointer;position:relative;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,0,.2,1)}
+    .card.flipped{transform:rotateY(180deg)}
+    .face{position:absolute;inset:0;backface-visibility:hidden;border-radius:16px;padding:20px 24px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;overflow-y:auto}
+    .front{background:linear-gradient(145deg,rgba(180,30,30,.12),rgba(15,15,30,.92));border:1px solid rgba(231,76,60,.15);box-shadow:0 12px 40px rgba(0,0,0,.3)}
+    .back{background:linear-gradient(145deg,rgba(30,60,180,.12),rgba(15,15,30,.92));border:1px solid rgba(52,152,219,.15);box-shadow:0 12px 40px rgba(0,0,0,.3);transform:rotateY(180deg)}
+
+    .face-top{display:flex;justify-content:space-between;align-items:center;width:100%;margin-bottom:8px;flex-shrink:0}
+    .face-lbl{font-size:.6rem;text-transform:uppercase;letter-spacing:2px;opacity:.35}
+    .mbadge{font-size:.55rem;padding:2px 8px;border-radius:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+    .mb-new{background:rgba(255,255,255,.06);color:#666}
+    .mb-learn{background:rgba(243,156,18,.12);color:#f39c12;border:1px solid rgba(243,156,18,.2)}
+    .mb-review{background:rgba(52,152,219,.12);color:#3498db;border:1px solid rgba(52,152,219,.2)}
+    .mb-master{background:rgba(46,204,113,.12);color:#2ecc71;border:1px solid rgba(46,204,113,.2)}
+
+    /* Mastery ring */
+    .ring{width:48px;height:48px;position:relative;margin-bottom:6px;flex-shrink:0}
+    .ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+    .ring-bg{stroke:rgba(255,255,255,.05)}
+    .ring-fg{transition:stroke-dashoffset .5s ease}
+    .ring .n{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;opacity:.2}
+    .front .n{color:#e74c3c}.back .n{color:#3498db}
+
+    .q-text{font-size:1.15rem;font-weight:700;line-height:1.35;color:#f0f0f0;flex-shrink:0}
+    .a-text{font-size:.9rem;line-height:1.6;color:#ccc;max-width:460px}
+
+    .hint-box{margin-top:8px;padding:8px 12px;background:rgba(155,89,182,.08);border:1px solid rgba(155,89,182,.15);border-radius:8px;font-size:.8rem;color:#bb8fce;display:none}
+    .hint-box.show{display:block;animation:fadeUp .3s ease}
+
+    .micro-hint{margin-top:10px;font-size:.6rem;color:#444;flex-shrink:0}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes slideInR{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes popIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+    @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+    @keyframes glow{0%{box-shadow:0 0 0 rgba(46,204,113,0)}50%{box-shadow:0 0 20px rgba(46,204,113,.3)}100%{box-shadow:0 0 0 rgba(46,204,113,0)}}
+
+    .card.anim-left{animation:slideIn .3s ease}
+    .card.anim-right{animation:slideInR .3s ease}
+    .card.anim-pop{animation:popIn .3s ease}
+    .card.anim-shake{animation:shake .4s ease}
+    .card.anim-glow{animation:glow .8s ease}
+
+    /* ── GRADE BUTTONS ── */
+    .grades{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:0 16px 6px;display:none}
+    .grades.show{display:block;animation:fadeUp .25s ease}
+    .g-row{display:flex;gap:6px}
+    .bg{flex:1;padding:9px 6px;border-radius:8px;font-size:.75rem;font-family:inherit;font-weight:600;cursor:pointer;border:none;transition:.2s}
+    .bg-again{background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.2);color:#e74c3c}
+    .bg-again:hover{background:rgba(231,76,60,.22)}
+    .bg-hard{background:rgba(243,156,18,.1);border:1px solid rgba(243,156,18,.2);color:#f39c12}
+    .bg-hard:hover{background:rgba(243,156,18,.22)}
+    .bg-good{background:rgba(52,152,219,.1);border:1px solid rgba(52,152,219,.2);color:#3498db}
+    .bg-good:hover{background:rgba(52,152,219,.22)}
+    .bg-easy{background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.2);color:#2ecc71}
+    .bg-easy:hover{background:rgba(46,204,113,.22)}
+    .g-hints{display:flex;gap:6px;margin-top:2px}
+    .g-hints span{flex:1;text-align:center;font-size:.58rem;color:#444}
+
+    /* ── QUIZ ── */
+    .quiz{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:0 16px 8px;display:none}
+    .quiz.show{display:block}
+    .qt{text-align:center;font-size:.78rem;color:#666;margin-bottom:6px}
+    .qt b{color:#f39c12;font-variant-numeric:tabular-nums}
+    .qopts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .qo{padding:12px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);color:#bbb;font-size:.78rem;font-family:inherit;cursor:pointer;text-align:left;line-height:1.35;transition:.2s}
+    .qo:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15)}
+    .qo.right{background:rgba(46,204,113,.12);border-color:rgba(46,204,113,.35);color:#2ecc71;animation:glow .6s ease}
+    .qo.wrong{background:rgba(231,76,60,.12);border-color:rgba(231,76,60,.35);color:#e74c3c}
+    .qo:disabled{cursor:default}
+
+    /* ── DOTS ── */
+    .dots{position:relative;z-index:1;display:flex;justify-content:center;gap:5px;padding:6px 16px;flex-wrap:wrap}
+    .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:.25s}
+    .dot.on{background:linear-gradient(135deg,#e74c3c,#3498db);border-color:transparent;transform:scale(1.35)}
+    .dot.d-m{background:#2ecc71;border-color:#2ecc71}
+    .dot.d-rv{background:#3498db;border-color:#3498db}
+    .dot.d-l{background:#f39c12;border-color:#f39c12}
+
+    /* ── STATS ── */
+    .stats-wrap{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:4px 16px 8px}
+    .stats-btn{display:flex;align-items:center;justify-content:center;gap:4px;background:none;border:none;color:#444;font-size:.7rem;font-family:inherit;cursor:pointer;padding:4px 10px;margin:0 auto;transition:.2s}
+    .stats-btn:hover{color:#777}
+    .stats-btn .arr{transition:transform .25s;display:inline-block;font-size:.6rem}
+    .stats-btn .arr.open{transform:rotate(180deg)}
+    .sgrid{display:none;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+    .sgrid.show{display:grid;animation:fadeUp .25s ease}
+    .sc{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:10px 6px;text-align:center}
+    .sc .sv{font-size:1.2rem;font-weight:800}
+    .sc .sl{font-size:.55rem;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-top:1px}
+    .c-acc{color:#3498db}.c-str{color:#f39c12}.c-rev{color:#9b59b6}.c-tm{color:#1abc9c}
+
+    /* ── KEYS ── */
+    .keys{position:relative;z-index:1;text-align:center;padding:6px 16px;font-size:.65rem;color:#333;display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+    .keys span{display:flex;align-items:center;gap:3px}
+
+    /* ── RESET ── */
+    .reset-bar{position:relative;z-index:1;text-align:center;padding:8px 16px 24px}
+    .br{padding:6px 14px;background:rgba(231,76,60,.06);border:1px solid rgba(231,76,60,.12);border-radius:6px;color:#c0392b;font-size:.68rem;font-family:inherit;font-weight:600;cursor:pointer;transition:.2s}
+    .br:hover{background:rgba(231,76,60,.14)}
+
+    /* ── MODALS ── */
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:100;justify-content:center;align-items:center;padding:16px}
+    .overlay.on{display:flex}
+    .modal{background:linear-gradient(145deg,#161b2e,#0f1220);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:36px 28px;text-align:center;max-width:400px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.5);animation:popIn .3s ease}
+    .modal .mi{font-size:2.5rem;margin-bottom:8px}
+    .modal h2{font-size:1.3rem;margin-bottom:4px;color:#f0f0f0}
+    .modal p{color:#777;margin-bottom:16px;line-height:1.5;font-size:.85rem}
+    .modal .ms{display:flex;justify-content:center;gap:24px;margin-bottom:20px}
+    .modal .ms .s{text-align:center}
+    .modal .ms .sn{font-size:1.5rem;font-weight:800}
+    .modal .ms .sl{font-size:.6rem;color:#555;text-transform:uppercase;letter-spacing:1px}
+    .sn.grn{color:#2ecc71}.sn.blu{color:#3498db}.sn.ylw{color:#f1c40f}.sn.red{color:#e74c3c}
+    .modal-btns{display:flex;gap:8px;justify-content:center}
+    .bm{padding:10px 22px;border-radius:10px;font-size:.85rem;font-family:inherit;font-weight:600;cursor:pointer;border:none;transition:.2s}
+    .bp{background:linear-gradient(135deg,#e74c3c,#3498db);color:#fff}
+    .bp:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(231,76,60,.25)}
+    .bs{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#aaa}
+    .bs:hover{background:rgba(255,255,255,.1)}
+
+    /* ── PARTICLES ── */
+    .particles{position:fixed;inset:0;pointer-events:none;z-index:150;overflow:hidden}
+    .particle{position:absolute;border-radius:50%;pointer-events:none}
+    @keyframes particleUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(0)}}
+    @keyframes particleBurst{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0)}}
+
+    /* ── CONFETTI ── */
+    .confetti-wrap{position:fixed;inset:0;pointer-events:none;z-index:200;overflow:hidden}
+    .confetti{position:absolute;top:-10px;animation:cfall linear forwards}
+    @keyframes cfall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:600px){
+      .hero{padding:18px 12px 6px}
+      .card{height:240px}
+      .face{padding:16px 18px}
+      .q-text{font-size:1rem}
+      .a-text{font-size:.82rem}
+      .qopts{grid-template-columns:1fr}
+      .sgrid{grid-template-columns:repeat(2,1fr)}
+      .keys{display:none}
+      .tab{padding:5px 12px;font-size:.7rem}
+      .g-row{flex-wrap:wrap}
+    }
+  </style>
+</head>
+<body>
+
+<section class="hero">
+  <h1>The Cold War</h1>
+  <div class="sub">Top 10 Facts &middot; Adaptive Learning Agent</div>
+</section>
+
+<div class="tabs" id="tabs">
+  <button class="tab on" data-m="study">Study<span class="badge" id="due-badge"></span></button>
+  <button class="tab" data-m="quiz">Quiz</button>
+  <button class="tab" data-m="review">Review</button>
+</div>
+
+<div class="mbar">
+  <div class="mbar-head">
+    <span id="msum">All new</span>
+    <span id="snum"></span>
+  </div>
+  <div class="mbar-track">
+    <div class="s s-m" id="sm" style="width:0"></div>
+    <div class="s s-rv" id="srv" style="width:0"></div>
+    <div class="s s-l" id="sl" style="width:0"></div>
+    <div class="s s-n" id="sn" style="width:100%"></div>
+  </div>
+  <div class="mleg">
+    <span><i style="background:#2ecc71"></i>Mastered</span>
+    <span><i style="background:#3498db"></i>Reviewing</span>
+    <span><i style="background:#f39c12"></i>Learning</span>
+    <span><i style="background:rgba(255,255,255,.15)"></i>New</span>
+  </div>
+</div>
+
+<div class="streak" id="streak"><span id="streak-inner"></span></div>
+
+<div class="card-head" id="card-head">
+  <span id="counter">Card 1 of 10</span>
+  <span id="timer"></span>
+</div>
+
+<div class="ctrls" id="ctrls">
+  <button class="btn bn" id="prev" disabled>&#8592;</button>
+  <button class="btn bh" id="hintbtn">Hint <kbd>H</kbd></button>
+  <button class="btn bf" id="flipbtn">Flip <kbd>Space</kbd></button>
+  <button class="btn bn" id="next">&#8594;</button>
+</div>
+
+<div class="card-wrap" id="card-wrap">
+  <div class="card" id="card">
+    <div class="face front" id="front">
+      <div class="face-top">
+        <span class="face-lbl">Question</span>
+        <span class="mbadge mb-new" id="fm">New</span>
+      </div>
+      <div class="ring">
+        <svg viewBox="0 0 48 48"><circle class="ring-bg" cx="24" cy="24" r="20" fill="none" stroke-width="3"/><circle class="ring-fg" id="rf" cx="24" cy="24" r="20" fill="none" stroke-width="3" stroke="#e74c3c" stroke-dasharray="125.66" stroke-dashoffset="125.66" stroke-linecap="round"/></svg>
+        <span class="n" id="fn">#1</span>
+      </div>
+      <div class="q-text" id="qtxt"></div>
+      <div class="hint-box" id="hbox"></div>
+      <div class="micro-hint">Click or press Space to reveal</div>
+    </div>
+    <div class="face back" id="back">
+      <div class="face-top">
+        <span class="face-lbl">Answer</span>
+        <span class="mbadge mb-new" id="bm">New</span>
+      </div>
+      <div class="ring">
+        <svg viewBox="0 0 48 48"><circle class="ring-bg" cx="24" cy="24" r="20" fill="none" stroke-width="3"/><circle class="ring-fg" id="rb" cx="24" cy="24" r="20" fill="none" stroke-width="3" stroke="#3498db" stroke-dasharray="125.66" stroke-dashoffset="125.66" stroke-linecap="round"/></svg>
+        <span class="n" id="bn">#1</span>
+      </div>
+      <div class="a-text" id="atxt"></div>
+    </div>
+  </div>
+</div>
+
+<div class="grades" id="grades">
+  <div class="g-row">
+    <button class="bg bg-again" data-g="0">Again <kbd>1</kbd></button>
+    <button class="bg bg-hard" data-g="1">Hard <kbd>2</kbd></button>
+    <button class="bg bg-good" data-g="2">Good <kbd>3</kbd></button>
+    <button class="bg bg-easy" data-g="3">Easy <kbd>4</kbd></button>
+  </div>
+  <div class="g-hints"><span>&lt;1m</span><span id="ih"></span><span id="ig"></span><span id="ie"></span></div>
+</div>
+
+<div class="quiz" id="quiz">
+  <div class="qt">Time: <b id="qtv">0:00</b></div>
+  <div class="qopts" id="qopts"></div>
+</div>
+
+<div class="dots" id="dots"></div>
+
+<div class="stats-wrap">
+  <button class="stats-btn" id="stoggle">Session Stats <span class="arr" id="sarr">&#9660;</span></button>
+  <div class="sgrid" id="sgrid">
+    <div class="sc"><div class="sv c-acc" id="sa">-</div><div class="sl">Accuracy</div></div>
+    <div class="sc"><div class="sv c-str" id="ss">0</div><div class="sl">Best Streak</div></div>
+    <div class="sc"><div class="sv c-rev" id="sr">0</div><div class="sl">Reviewed</div></div>
+    <div class="sc"><div class="sv c-tm" id="st">-</div><div class="sl">Avg Time</div></div>
+  </div>
+</div>
+
+<div class="keys">
+  <span><kbd>&#8592;</kbd> Prev</span>
+  <span><kbd>Space</kbd> Flip</span>
+  <span><kbd>&#8594;</kbd> Next</span>
+  <span><kbd>H</kbd> Hint</span>
+  <span><kbd>1-4</kbd> Grade</span>
+</div>
+
+<div class="reset-bar"><button class="br" id="resetbtn">Reset All Progress</button></div>
+
+<div class="overlay" id="ov1">
+  <div class="modal">
+    <div class="mi" id="m1i">&#9733;</div>
+    <h2 id="m1t">Session Complete!</h2>
+    <p id="m1d"></p>
+    <div class="ms" id="m1s"></div>
+    <div class="modal-btns">
+      <button class="bm bp" id="m1a"></button>
+      <button class="bm bs" id="m1b" style="display:none"></button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ov2">
+  <div class="modal">
+    <div class="mi">&#127942;</div>
+    <h2>All Cards Mastered!</h2>
+    <p>Full recall across all 10 Cold War facts. Return later for spaced review.</p>
+    <div class="modal-btns">
+      <button class="bm bp" id="m2a">Keep Studying</button>
+      <button class="bm bs" id="m2b">Reset</button>
+    </div>
+  </div>
+</div>
+
+<div class="particles" id="particles"></div>
+<div class="confetti-wrap" id="confetti"></div>
+
+<script>
+// ══════════════ DATA ══════════════
+const C=[
+  {q:"What was the Cold War?",a:"A prolonged period of geopolitical tension (1947\u20131991) between the United States and its Western allies versus the Soviet Union and the Eastern Bloc. It was called \u2018cold\u2019 because the two superpowers never fought each other directly.",hint:"Think: T__sion between two superpowers, no direct w__fare",w:["A brief military conflict between NATO and the Warsaw Pact in the 1960s","An economic trade agreement between the US and USSR","A cultural exchange program between Eastern and Western nations"]},
+  {q:"What event is considered the start of the Cold War?",a:"The Truman Doctrine of 1947, in which President Truman pledged U.S. support for nations resisting communist expansion. This policy of \u2018containment\u2019 set the tone for decades of rivalry.",hint:"1947 \u2014 President T__man \u2014 policy of c__tainment",w:["The bombing of Pearl Harbor in 1941","The signing of the Treaty of Versailles in 1919","The launch of Sputnik in 1957"]},
+  {q:"What was the Berlin Wall and why was it significant?",a:"Built in 1961 by East Germany, the Berlin Wall divided East and West Berlin. It became the ultimate symbol of the Iron Curtain. It fell on November 9, 1989.",hint:"Built 19_1 \u2014 divided a city \u2014 fell in 19_9",w:["A defensive fortification built by NATO along the German border","A trade barrier between the EEC and the USSR","A propaganda campaign run by West Germany during the 1970s"]},
+  {q:"What was the Cuban Missile Crisis?",a:"A 13-day confrontation in October 1962 between the U.S. and Soviet Union over Soviet nuclear missiles in Cuba. It is widely regarded as the closest the world ever came to nuclear war.",hint:"13 days \u2014 October 19_2 \u2014 Soviet m__siles in C__a",w:["A naval blockade of Cuba lasting six months in 1960","A failed US invasion known as the Bay of Pigs","Soviet nuclear tests conducted near Cuba in 1965"]},
+  {q:"What was the Space Race?",a:"A competition between the U.S. and USSR in space exploration. The Soviets launched Sputnik (1957) and sent Yuri Gagarin to space (1961). The U.S. won the Moon race with Apollo 11 in 1969.",hint:"S__tnik 1957 \u2014 G__arin 1961 \u2014 Apollo __ in 1969",w:["A joint US-Soviet program to build a space station","A race to develop supersonic passenger aircraft","A military satellite program run by NATO"]},
+  {q:"What was NATO and the Warsaw Pact?",a:"NATO (1949) was a Western military alliance led by the U.S. The Warsaw Pact (1955) was the Soviet-led counterpart. These two blocs divided Europe until the Pact dissolved in 1991.",hint:"N__O = 1949, Western \u2014 W__saw Pact = 1955, Eastern",w:["Two economic trade organizations that merged after the Cold War","Arms reduction treaties signed in the 1970s","Intelligence agencies created by the US and USSR"]},
+  {q:"What role did nuclear weapons play in the Cold War?",a:"Both superpowers built enormous nuclear arsenals, creating Mutually Assured Destruction (MAD). Neither side would strike first because it would guarantee their own annihilation.",hint:"Doctrine: M__ually A__ured D__struction (M.A.D.)",w:["Nuclear weapons were only held by the US","Both sides destroyed all nuclear weapons in the 1970s","Nuclear weapons were used once in a limited strike"]},
+  {q:"What were proxy wars during the Cold War?",a:"The U.S. and USSR supported opposing sides in regional conflicts instead of fighting directly. Major proxy wars: Korean War (1950\u201353), Vietnam War (1955\u201375), Soviet-Afghan War (1979\u201389).",hint:"K__ean War, V__tnam War, Soviet-A__han War",w:["Direct battles between US and Soviet troops","Economic sanctions between the superpowers","Cybersecurity conflicts between intelligence agencies"]},
+  {q:"Who were the key leaders of the Cold War?",a:"U.S.: Truman, Eisenhower, Kennedy, Nixon, Reagan. USSR: Stalin, Khrushchev, Brezhnev, Gorbachev. Gorbachev\u2019s glasnost and perestroika reforms helped end the conflict.",hint:"US: T, E, K, N, R \u2014 USSR: S, K, B, G \u2014 G__bachev ended it",w:["Churchill, de Gaulle, and Adenauer led both sides","The Cold War had no significant individual leaders","Mao Zedong and Fidel Castro led both sides"]},
+  {q:"How did the Cold War end?",a:"The Soviet Union dissolved on December 26, 1991. Contributing factors: economic stagnation, Gorbachev\u2019s reforms, the fall of the Berlin Wall, and the collapse of communist governments across Eastern Europe.",hint:"December 26, 19_1 \u2014 USSR d__solved \u2014 Berlin Wall fell first",w:["A peace treaty was signed in 1985","NATO defeated the Warsaw Pact militarily","The UN brokered a ceasefire in 1990"]}
+];
+
+const CIRC=2*Math.PI*20; // 125.66
+
+// ══════════════ SRS ENGINE ══════════════
+const defaultSRS=()=>C.map(()=>({iv:0,ef:2.5,reps:0,mastery:'new',next:0,last:null,tr:0,cr:0}));
+
+function grade(s,g){
+  const o={...s};o.tr++;
+  if(g>=2)o.cr++;
+  if(g===0){o.reps=0;o.iv=1;o.ef=Math.max(1.3,o.ef-.2);o.mastery='learning'}
+  else if(g===1){o.iv=Math.max(1,o.iv*1.2);o.ef=Math.max(1.3,o.ef-.15);if(o.mastery==='new')o.mastery='learning'}
+  else if(g===2){o.reps++;if(o.reps===1)o.iv=10;else if(o.reps===2)o.iv=1440;else o.iv=o.iv*o.ef;if(o.reps>=2&&o.mastery==='learning')o.mastery='reviewing';if(o.reps>=4)o.mastery='mastered'}
+  else{o.reps++;if(o.reps===1)o.iv=1440;else o.iv=o.iv*o.ef*1.3;o.ef+=.15;if(o.reps>=1&&o.mastery!=='mastered')o.mastery='reviewing';if(o.reps>=3)o.mastery='mastered'}
+  o.last=g;o.next=Date.now()+o.iv*60000;return o
+}
+
+function fmtIv(m){if(m<1)return'<1m';if(m<60)return Math.round(m)+'m';if(m<1440)return Math.round(m/60)+'h';return Math.round(m/1440)+'d'}
+function nextIvs(s){return{h:fmtIv(Math.max(1,(s.iv||1)*1.2)),g:fmtIv(s.reps===0?10:s.reps===1?1440:(s.iv||10)*s.ef),e:fmtIv(s.reps===0?1440:(s.iv||10)*s.ef*1.3)}}
+
+// ══════════════ STORAGE ══════════════
+const KEY='cw_agent_v3';
+function load(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r&&r.srs&&r.srs.length===C.length)return r}catch{}return{srs:defaultSRS(),sessions:[]}}
+function save(){localStorage.setItem(KEY,JSON.stringify({srs:S.srs,sessions:S.sessions}))}
+
+// ══════════════ STATE ══════════════
+let S=load();
+let mode='study',queue=[],qi=0,flipped=false,hinted=false;
+let streak=0,best=0,reviewed=0,correct=0,cardStart=0,times=[];
+let qzTimer=null,qzStart=0,qzScore=0,qzAns=false;
+
+// ══════════════ ELEMENTS ══════════════
+const $=id=>document.getElementById(id);
+const cardEl=$('card'),qtxt=$('qtxt'),atxt=$('atxt'),fn=$('fn'),bn=$('bn');
+const fm=$('fm'),bm=$('bm'),rf=$('rf'),rb=$('rb');
+const hbox=$('hbox'),prevB=$('prev'),nextB=$('next'),flipB=$('flipbtn'),hintB=$('hintbtn');
+const gradesEl=$('grades'),quizEl=$('quiz'),qopts=$('qopts');
+const counter=$('counter'),dotsEl=$('dots');
+const streakEl=$('streak'),streakIn=$('streak-inner');
+const ov1=$('ov1'),ov2=$('ov2'),particlesEl=$('particles'),confettiEl=$('confetti');
+
+// ══════════════ QUEUE ══════════════
+function buildQueue(){
+  const now=Date.now(),due=[],nw=[],rest=[];
+  S.srs.forEach((s,i)=>{if(s.mastery==='new')nw.push(i);else if(s.next<=now)due.push(i);else rest.push(i)});
+  due.sort((a,b)=>S.srs[a].next-S.srs[b].next);
+  queue=[...due,...nw,...rest];qi=0;
+}
+function dueCount(){const n=Date.now();return S.srs.filter(s=>s.mastery==='new'||s.next<=n).length}
+
+// ══════════════ PARTICLES ══════════════
+function spawnParticles(x,y,color,count=8){
+  for(let i=0;i<count;i++){
+    const p=document.createElement('div');p.className='particle';
+    const dx=(Math.random()-.5)*80,dy=(Math.random()-.5)*80;
+    const sz=3+Math.random()*5;
+    p.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;background:${color};--dx:${dx}px;--dy:${dy}px;animation:particleBurst .6s ease-out forwards`;
+    particlesEl.appendChild(p);
+    setTimeout(()=>p.remove(),700);
+  }
+}
+
+function spawnRisingParticles(x,y,color,count=5){
+  for(let i=0;i<count;i++){
+    const p=document.createElement('div');p.className='particle';
+    const sz=3+Math.random()*4;
+    const ox=(Math.random()-.5)*40;
+    p.style.cssText=`left:${x+ox}px;top:${y}px;width:${sz}px;height:${sz}px;background:${color};animation:particleUp .8s ease-out forwards;animation-delay:${i*.08}s`;
+    particlesEl.appendChild(p);
+    setTimeout(()=>p.remove(),1000);
+  }
+}
+
+function confetti(){
+  confettiEl.innerHTML='';
+  const cols=['#e74c3c','#3498db','#2ecc71','#f39c12','#9b59b6','#1abc9c','#e67e22','#ecf0f1'];
+  for(let i=0;i<100;i++){
+    const c=document.createElement('div');c.className='confetti';
+    c.style.cssText=`left:${Math.random()*100}%;width:${5+Math.random()*7}px;height:${5+Math.random()*7}px;background:${cols[~~(Math.random()*cols.length)]};border-radius:${Math.random()>.5?'50%':'1px'};animation-duration:${2+Math.random()*2}s;animation-delay:${Math.random()*1.5}s`;
+    confettiEl.appendChild(c);
+  }
+  setTimeout(()=>confettiEl.innerHTML='',5000);
+}
+
+// ══════════════ RENDERING ══════════════
+const mLabel=m=>({new:'New',learning:'Learning',reviewing:'Reviewing',mastered:'Mastered'}[m]||'New');
+const mClass=m=>({new:'mb-new',learning:'mb-learn',reviewing:'mb-review',mastered:'mb-master'}[m]||'mb-new');
+function mProg(s){if(s.mastery==='mastered')return 1;if(s.mastery==='reviewing')return .6+Math.min(s.reps,4)/4*.4;if(s.mastery==='learning')return .15+Math.min(s.reps,2)/2*.45;return 0}
+const ringCol=m=>({new:'#444',learning:'#f39c12',reviewing:'#3498db',mastered:'#2ecc71'}[m]||'#444');
+
+function curIdx(){return mode==='review'?qi:queue[qi]??0}
+
+function render(anim){
+  const idx=curIdx(),card=C[idx],srs=S.srs[idx];
+  qtxt.textContent=card.q;
+  atxt.textContent=card.a;
+  const num=qi+1;
+  fn.textContent='#'+num;bn.textContent='#'+num;
+
+  const ml=mLabel(srs.mastery),mc=mClass(srs.mastery);
+  fm.textContent=ml;fm.className='mbadge '+mc;
+  bm.textContent=ml;bm.className='mbadge '+mc;
+
+  const prog=mProg(srs),off=CIRC*(1-prog),rc=ringCol(srs.mastery);
+  rf.style.strokeDashoffset=off;rb.style.strokeDashoffset=off;
+  rf.style.stroke=rc;rb.style.stroke=rc;
+
+  cardEl.classList.toggle('flipped',flipped);
+  hbox.textContent=card.hint;
+  hbox.classList.toggle('show',hinted);
+  hintB.disabled=hinted;
+
+  if(anim){cardEl.classList.remove('anim-left','anim-right','anim-pop','anim-shake','anim-glow');void cardEl.offsetWidth;cardEl.classList.add(anim)}
+
+  if(mode==='study'){gradesEl.classList.toggle('show',flipped);if(flipped){const iv=nextIvs(srs);$('ih').textContent=iv.h;$('ig').textContent=iv.g;$('ie').textContent=iv.e}}
+  else gradesEl.classList.remove('show');
+
+  const total=mode==='review'?C.length:queue.length;
+  counter.textContent=`Card ${num} of ${total}`;
+  prevB.disabled=qi===0;
+  nextB.disabled=qi>=total-1;
+
+  updateBar();updateDots();updateStats();
+  cardStart=Date.now();
+}
+
+function updateBar(){
+  const c={new:0,learning:0,reviewing:0,mastered:0};
+  S.srs.forEach(s=>c[s.mastery]++);
+  const t=C.length;
+  $('sm').style.width=c.mastered/t*100+'%';
+  $('srv').style.width=c.reviewing/t*100+'%';
+  $('sl').style.width=c.learning/t*100+'%';
+  $('sn').style.width=c.new/t*100+'%';
+  const p=[];
+  if(c.mastered)p.push(c.mastered+' mastered');
+  if(c.reviewing)p.push(c.reviewing+' reviewing');
+  if(c.learning)p.push(c.learning+' learning');
+  if(c.new)p.push(c.new+' new');
+  $('msum').textContent=c.mastered===t?'All cards mastered!':p.join(' \u00B7 ');
+  const d=dueCount();
+  const badge=$('due-badge');
+  if(d>0&&mode!=='study'){badge.textContent=d;badge.style.display='flex'}else badge.style.display='none';
+  $('snum').textContent=S.sessions.length?'Session '+(S.sessions.length+1):'';
+}
+
+function updateDots(){
+  dotsEl.innerHTML='';
+  const total=mode==='review'?C.length:queue.length;
+  for(let i=0;i<total;i++){
+    const idx=mode==='review'?i:queue[i];
+    const d=document.createElement('div');d.className='dot';
+    if(i===qi)d.classList.add('on');
+    const m=S.srs[idx].mastery;
+    if(m==='mastered')d.classList.add('d-m');
+    else if(m==='reviewing')d.classList.add('d-rv');
+    else if(m==='learning')d.classList.add('d-l');
+    d.onclick=()=>{if(mode==='quiz')return;qi=i;flipped=false;hinted=false;render('anim-pop')};
+    dotsEl.appendChild(d);
+  }
+}
+
+function updateStreak(){
+  if(streak>=3){streakIn.textContent='\uD83D\uDD25 '+streak+' in a row! \uD83D\uDD25';streakEl.classList.add('on')}
+  else streakEl.classList.remove('on');
+}
+
+function updateStats(){
+  $('sa').textContent=reviewed>0?Math.round(correct/reviewed*100)+'%':'-';
+  $('ss').textContent=best;
+  $('sr').textContent=reviewed;
+  $('st').textContent=times.length>0?(times.reduce((a,b)=>a+b,0)/times.length/1000).toFixed(1)+'s':'-';
+}
+
+// ══════════════ ACTIONS ══════════════
+function flip(){if(mode==='quiz')return;flipped=!flipped;render()}
+function showHint(){if(hinted||flipped)return;hinted=true;render()}
+
+function gradeCard(g){
+  if(!flipped||mode!=='study')return;
+  const idx=curIdx(),el=Date.now()-cardStart;
+  times.push(el);
+  const eg=hinted?Math.min(g,1):g;
+  const oldMastery=S.srs[idx].mastery;
+  S.srs[idx]=grade(S.srs[idx],eg);
+  save();reviewed++;
+
+  // Micro celebrations based on grade
+  const rect=cardEl.getBoundingClientRect();
+  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+
+  if(eg>=2){
+    correct++;streak++;if(streak>best)best=streak;
+    // Success particles
+    spawnParticles(cx,cy,eg===3?'#2ecc71':'#3498db',eg===3?14:8);
+    if(streak>=3)spawnRisingParticles(cx,cy-60,'#f39c12',streak);
+    // Mastery upgrade celebration
+    if(S.srs[idx].mastery!==oldMastery){
+      if(S.srs[idx].mastery==='mastered'){spawnParticles(cx,cy,'#2ecc71',20);cardEl.classList.remove('anim-glow');void cardEl.offsetWidth;cardEl.classList.add('anim-glow')}
+      else if(S.srs[idx].mastery==='reviewing')spawnParticles(cx,cy,'#3498db',12);
+    }
+  }else{
+    streak=0;
+    if(eg===0){cardEl.classList.remove('anim-shake');void cardEl.offsetWidth;cardEl.classList.add('anim-shake')}
+  }
+
+  updateStreak();
+
+  if(S.srs.every(s=>s.mastery==='mastered')){confetti();setTimeout(()=>ov2.classList.add('on'),800);saveSession();return}
+  if(qi<queue.length-1)qi++;else{buildQueue();if(!queue.length){showComplete();return}}
+  flipped=false;hinted=false;render('anim-left');
+}
+
+function showComplete(){
+  saveSession();
+  $('m1i').textContent='\u2733';$('m1t').textContent='Session Complete!';
+  $('m1d').textContent='You reviewed '+reviewed+' cards this session.';
+  $('m1s').innerHTML=`<div class="s"><div class="sn grn">${correct}</div><div class="sl">Correct</div></div><div class="s"><div class="sn ylw">${reviewed-correct}</div><div class="sl">Needs Work</div></div><div class="s"><div class="sn blu">${best}</div><div class="sl">Best Streak</div></div>`;
+  $('m1a').textContent='Study Again';$('m1a').onclick=()=>{ov1.classList.remove('on');go('study')};
+  $('m1b').textContent='Review Mode';$('m1b').style.display='inline-flex';$('m1b').onclick=()=>{ov1.classList.remove('on');go('review')};
+  ov1.classList.add('on');
+}
+
+function saveSession(){if(reviewed>0){S.sessions.push({d:Date.now(),r:reviewed,c:correct,s:best});if(S.sessions.length>10)S.sessions=S.sessions.slice(-10);save()}}
+
+// ══════════════ QUIZ ══════════════
+function startQuiz(){
+  qzScore=0;qzStart=Date.now();qzAns=false;
+  queue=C.map((_,i)=>i);
+  for(let i=queue.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[queue[i],queue[j]]=[queue[j],queue[i]]}
+  qi=0;flipped=false;hinted=false;
+  if(qzTimer)clearInterval(qzTimer);
+  qzTimer=setInterval(()=>{const e=~~((Date.now()-qzStart)/1000);$('qtv').textContent=~~(e/60)+':'+(e%60+'').padStart(2,'0')},1000);
+  renderQuiz();
+}
+
+function renderQuiz(){
+  const idx=queue[qi],card=C[idx],srs=S.srs[idx];
+  qtxt.textContent=card.q;fn.textContent='#'+(qi+1);
+  fm.textContent=mLabel(srs.mastery);fm.className='mbadge '+mClass(srs.mastery);
+  const prog=mProg(srs),off=CIRC*(1-prog);rf.style.strokeDashoffset=off;rf.style.stroke=ringCol(srs.mastery);
+  flipped=false;hinted=false;qzAns=false;
+  cardEl.classList.remove('flipped');
+  hbox.classList.remove('show');
+  counter.textContent='Q '+(qi+1)+' of '+C.length;
+
+  const opts=[card.a,...card.w];
+  for(let i=opts.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]]}
+  qopts.innerHTML='';
+  opts.forEach(o=>{
+    const b=document.createElement('button');b.className='qo';
+    b.textContent=o.length>110?o.slice(0,107)+'...':o;
+    b.dataset.ok=o===card.a?'1':'0';
+    b.onclick=()=>quizAnswer(b,o===card.a,idx);
+    qopts.appendChild(b);
+  });
+  updateDots();
+}
+
+function quizAnswer(btn,ok,idx){
+  if(qzAns)return;qzAns=true;
+  qopts.querySelectorAll('.qo').forEach(b=>{b.disabled=true;if(b.dataset.ok==='1')b.classList.add('right')});
+  const rect=btn.getBoundingClientRect();
+  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+
+  if(ok){
+    btn.classList.add('right');qzScore++;streak++;if(streak>best)best=streak;
+    S.srs[idx]=grade(S.srs[idx],2);
+    spawnParticles(cx,cy,'#2ecc71',10);
+    if(streak>=3)spawnRisingParticles(cx,cy-30,'#f39c12',streak);
+  }else{
+    btn.classList.add('wrong');streak=0;
+    S.srs[idx]=grade(S.srs[idx],0);
+    spawnParticles(cx,cy,'#e74c3c',6);
+  }
+  reviewed++;if(ok)correct++;
+  save();updateStreak();updateStats();
+
+  setTimeout(()=>{
+    if(qi<queue.length-1){qi++;renderQuiz();cardEl.classList.remove('anim-left');void cardEl.offsetWidth;cardEl.classList.add('anim-left')}
+    else{clearInterval(qzTimer);showQuizDone()}
+  },1100);
+}
+
+function showQuizDone(){
+  saveSession();
+  const e=~~((Date.now()-qzStart)/1000);
+  $('m1i').textContent='\uD83C\uDFC6';$('m1t').textContent='Quiz Complete!';
+  $('m1d').textContent='Finished in '+~~(e/60)+':'+(e%60+'').padStart(2,'0');
+  $('m1s').innerHTML=`<div class="s"><div class="sn grn">${qzScore}</div><div class="sl">Correct</div></div><div class="s"><div class="sn red">${C.length-qzScore}</div><div class="sl">Wrong</div></div><div class="s"><div class="sn blu">${Math.round(qzScore/C.length*100)}%</div><div class="sl">Score</div></div>`;
+  $('m1a').textContent='Retake Quiz';$('m1a').onclick=()=>{ov1.classList.remove('on');go('quiz')};
+  $('m1b').textContent='Study Mode';$('m1b').style.display='inline-flex';$('m1b').onclick=()=>{ov1.classList.remove('on');go('study')};
+
+  // Confetti if perfect
+  if(qzScore===C.length)confetti();
+
+  ov1.classList.add('on');
+}
+
+// ══════════════ MODE SWITCH ══════════════
+function go(m){
+  mode=m;flipped=false;hinted=false;streak=0;best=0;reviewed=0;correct=0;times=[];
+  updateStreak();
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.m===m));
+  const isSt=m==='study',isQz=m==='quiz',isRv=m==='review';
+  $('ctrls').style.display=isQz?'none':'flex';
+  hintB.style.display=isSt?'':'none';
+  gradesEl.classList.remove('show');
+  quizEl.classList.toggle('show',isQz);
+  $('card-head').style.display=isQz?'flex':'flex';
+  $('timer').style.display=isSt?'':'none';
+  if(isSt){buildQueue();qi=0}
+  else if(isQz){startQuiz();render();return}
+  else{qi=0}
+  render('anim-pop');
+}
+
+// ══════════════ EVENTS ══════════════
+cardEl.onclick=flip;
+flipB.onclick=flip;
+hintB.onclick=showHint;
+prevB.onclick=()=>{if(mode==='quiz'||qi===0)return;qi--;flipped=false;hinted=false;render('anim-right')};
+nextB.onclick=()=>{const t=mode==='review'?C.length:queue.length;if(mode==='quiz'||qi>=t-1)return;qi++;flipped=false;hinted=false;render('anim-left')};
+document.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>gradeCard(+b.dataset.g));
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(t.dataset.m));
+$('stoggle').onclick=()=>{$('sgrid').classList.toggle('show');$('sarr').classList.toggle('open')};
+$('resetbtn').onclick=()=>{if(confirm('Reset all progress?')){S={srs:defaultSRS(),sessions:[]};save();go('study')}};
+$('m2a').onclick=()=>ov2.classList.remove('on');
+$('m2b').onclick=()=>{ov2.classList.remove('on');S={srs:defaultSRS(),sessions:[]};save();go('study')};
+
+document.addEventListener('keydown',e=>{
+  if(ov1.classList.contains('on')||ov2.classList.contains('on'))return;
+  if(e.code==='Space'){e.preventDefault();flip()}
+  if(e.key==='h'||e.key==='H'){e.preventDefault();showHint()}
+  if(e.code==='ArrowLeft'){if(mode!=='quiz'&&qi>0){qi--;flipped=false;hinted=false;render('anim-right')}}
+  if(e.code==='ArrowRight'){const t=mode==='review'?C.length:queue.length;if(mode!=='quiz'&&qi<t-1){qi++;flipped=false;hinted=false;render('anim-left')}}
+  if(mode==='study'&&flipped){if(e.key==='1')gradeCard(0);if(e.key==='2')gradeCard(1);if(e.key==='3')gradeCard(2);if(e.key==='4')gradeCard(3)}
+});
+
+// ══════════════ INIT ══════════════
+go('study');
+</script>
+</body>
+</html>
